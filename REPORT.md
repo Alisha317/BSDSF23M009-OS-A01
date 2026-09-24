@@ -78,3 +78,9 @@ wordCount, etc.) unhe directly final executable ke andar copy/embed kar diya.
 Isi wajah se static executable size me bara hota hai lekin run-time pe kisi 
 external .so file ki zaroorat nahi padti — sab kuch executable ke andar 
 self-contained hota hai.
+
+Note: readelf -d bin/client_static output me libc.so.6 as a NEEDED shared 
+library dikhti hai. Iska matlab ye hai ke hamare khud ke likhe functions 
+(mystrlen, wordCount, etc.) static tor pe executable ke andar embed ho gaye 
+hain, lekin system ki standard C library (libc) by default dynamically 
+link hoti hai — jab tak humne -static flag explicitly use na kiya ho.
