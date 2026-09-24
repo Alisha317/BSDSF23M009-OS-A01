@@ -92,3 +92,47 @@ shared library. This means that while our own custom functions (mystrlen,
 wordCount, etc.) are embedded into the executable statically, the system's
 standard C library (libc) is still dynamically linked by default, unless
 the -static flag is explicitly used.
+
+## Feature-4 Report Questions
+
+### 1. Position-Independent Code (-fPIC)
+-fPIC (Position-Independent Code) is a compiler flag that generates machine
+code capable of being loaded at any memory address, without relying on
+hardcoded absolute addresses. This is a fundamental requirement for shared
+libraries because a single dynamic library (.so) may be loaded into memory
+by multiple different programs simultaneously, each at a different memory
+address. If the code were not position-independent, every program using the
+library would require it to be loaded at a fixed address, leading to memory
+conflicts and inefficiency. PIC code achieves this using relative addressing
+techniques (such as the Global Offset Table, GOT), allowing it to be loaded
+anywhere in memory.
+
+### 2. File size difference (static vs dynamic)
+client_static is typically larger than client_dynamic because in a static
+build, all the functions from libmyutils (mystrlen, wordCount, etc.) are
+copied directly into the executable's machine code. In a dynamic build, the
+executable only contains a reference/link to libmyutils.so — the actual
+function code is not embedded, and instead is loaded into memory from the
+shared library at runtime. This normally results in a smaller file size for
+the dynamically linked executable. In our case, the observed size difference
+was minimal, since the custom library itself contained only a small amount
+of code.
+
+### 3. LD_LIBRARY_PATH
+LD_LIBRARY_PATH is an environment variable that tells the dynamic loader
+which additional directories to search for shared libraries (.so files),
+beyond the standard system paths (such as /lib and /usr/lib).
+
+Setting it was necessary because our custom libmyutils.so file was not
+located in any standard system library path — it only existed inside our
+project's own lib/ directory. When ./bin/client_dynamic was first run, the
+loader did not know where to find this custom library, resulting in the
+"cannot open shared object file" error. Setting LD_LIBRARY_PATH explicitly
+told the loader to also search our project's lib/ directory. After setting
+it, ldd confirmed that libmyutils.so was correctly resolved from our
+project's lib/ folder.
+
+This highlights that the operating system's dynamic loader is responsible,
+at runtime, for locating, loading, and linking shared libraries with the
+running program — which is fundamentally different from static linking,
+where everything is already embedded into the executable at compile time.
