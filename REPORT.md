@@ -1,86 +1,94 @@
+# REPORT.md
+
+This report documents the analysis and answers for the Operating Systems
+assignment: Building a Multi-file C Project with Static and Dynamic Libraries.
+
+Repository: BSDSF23M009-OS-A01
 
 ## Feature-2 Report Questions
 
 ### 1. Linking rule: $(TARGET): $(OBJECTS)
-Ye rule batata hai ke final executable ($(TARGET)) directly saare object files 
-($(OBJECTS)) ko compile aur link kar ke banta hai — koi intermediate library 
-nahi banti. Compiler har .o file ko dhoondta hai aur unhe seedha ek saath 
-link kar deta hai executable banane ke liye.
+This rule states that the final executable ($(TARGET)) is produced by
+directly compiling and linking all the object files ($(OBJECTS)) together —
+no intermediate library is created. The compiler locates each .o file and
+links them all directly together to produce the executable.
 
-Library ke saath link karne wale rule me ($(TARGET): $(OBJECTS) $(LIBS)) 
-hum -L (library path) aur -l (library name) flags use karte hain, jisse 
-linker pehle se compiled .a (static) ya .so (dynamic) library ko dhoondta 
-hai aur usse link karta hai, instead of raw object files ko directly link 
-karne ke. Is se code reusability aur modularity behtar hoti hai.
+A Makefile rule that links against a library instead (e.g.,
+$(TARGET): $(OBJECTS) $(LIBS)) uses the -L (library path) and -l (library
+name) flags, which tell the linker to locate and link against a precompiled
+.a (static) or .so (dynamic) library, instead of directly linking raw object
+files. This improves code reusability and modularity.
 
 ### 2. Git Tag
-Git tag ek specific commit ko mark karta hai as an important point in project 
-history, jaise ek stable release version. Ye useful hai kyunki ye humein 
-specific versions ko easily identify aur checkout karne deta hai without 
-remembering commit hashes.
+A Git tag marks a specific commit as an important point in the project's
+history, such as a stable release version. It is useful because it allows
+specific versions to be easily identified and checked out without needing to
+remember commit hashes.
 
-Simple tag sirf ek label hota hai (commit ka pointer), jabke Annotated tag 
-ek full Git object hota hai jisme tagger ka naam, email, date, aur ek message 
-store hota hai — jaise ek mini commit. Annotated tags releases ke liye 
-recommended hain kyunki inme extra metadata aur signing support hoti hai.
+A simple tag is just a label (a pointer to a commit), whereas an annotated
+tag is a full Git object that stores the tagger's name, email, date, and a
+message — similar to a mini commit. Annotated tags are recommended for
+releases because they carry additional metadata and support signing.
 
 ### 3. GitHub Release
-GitHub pe "Release" banane ka purpose hai project ka ek stable, versioned 
-snapshot users ke liye distribute karna, jisme changelog aur compiled files 
-attached ho sakti hain.
+The purpose of creating a "Release" on GitHub is to distribute a stable,
+versioned snapshot of the project to users, which can include a changelog
+and attached compiled files.
 
-Binary (jaise client executable) attach karne ki significance ye hai ke 
-end-users ko source code compile karne ki zaroorat nahi padti — wo directly 
-ready-made, tested executable download kar ke use kar sakte hain, jo especially 
-un logon ke liye helpful hai jinke paas build tools (compiler, make) install 
-nahi hain.
+The significance of attaching a binary (such as the client executable) is
+that end-users do not need to compile the source code themselves — they can
+directly download a ready-made, tested executable and use it. This is
+especially helpful for users who do not have build tools (compiler, make)
+installed on their system.
 
 ## Feature-3 Report Questions
 
 ### 1. Makefile comparison (Part 2 vs Part 3)
-Part 2 ke Makefile me saare object files (main.o, mystrfunctions.o, 
-myfilefunctions.o) directly link kar ke executable banaya jata tha:
-$(TARGET): $(OBJECTS)
-    $(CC) $(OBJECTS) -o $(TARGET)
+In Part 2's Makefile, all object files (main.o, mystrfunctions.o,
+myfilefunctions.o) were linked directly to produce the executable:
 
-Part 3 me library functions (mystrfunctions.o, myfilefunctions.o) ko pehle 
-ar utility se ek static library (libmyutils.a) me bundle kiya jata hai, aur 
-phir sirf main.o us library ke against link hota hai:
-$(TARGET): $(MAIN_OBJECT) $(LIB)
-    $(CC) $(MAIN_OBJECT) -L$(LIB_DIR) -lmyutils -o $(TARGET)
+    $(TARGET): $(OBJECTS)
+        $(CC) $(OBJECTS) -o $(TARGET)
 
-Key differences: naye variables AR (archiver tool) aur ARFLAGS (rcs flags) 
-add hue. Library banane ka naya rule add hua jo ar command use karta hai. 
-Linking step me -L (library search path) aur -l (library name) flags add 
-hue, jo directly object files link karne ke bajaye compiled library se 
-link karte hain.
+In Part 3, the library functions (mystrfunctions.o, myfilefunctions.o) are
+first bundled into a static library (libmyutils.a) using the ar utility, and
+then only main.o is linked against that library:
 
-### 2. ar command aur ranlib
-ar (archiver) command multiple object (.o) files ko ek single archive file 
-(.a) me combine karta hai, jo static library banane ke liye use hota hai. 
-"rcs" flags: r (insert/replace files), c (create archive silently), 
-s (index table generate karo).
+    $(TARGET): $(MAIN_OBJECT) $(LIB)
+        $(CC) $(MAIN_OBJECT) -L$(LIB_DIR) -lmyutils -o $(TARGET)
 
-ranlib archive ke andar ek index (symbol table) generate/update karta hai, 
-jisse linker jaldi se pata laga sake ke konsa symbol (function) kis object 
-file me hai, bina poori archive scan kiye. Jab hum ar ke sath "s" flag use 
-karte hain (jaise humne ARFLAGS = rcs me kiya), to ranlib automatically 
-chal jata hai — isliye separate ranlib command chalane ki zaroorat nahi padi.
+Key differences: new variables AR (archiver tool) and ARFLAGS (rcs flags)
+were added. A new rule was added to build the library using the ar command.
+In the linking step, the -L (library search path) and -l (library name)
+flags were added, which link against the compiled library instead of
+directly linking the object files.
+
+### 2. The ar command and ranlib
+The ar (archiver) command combines multiple object (.o) files into a single
+archive file (.a), which is used to create a static library. The "rcs"
+flags mean: r (insert/replace files), c (create the archive silently),
+s (generate an index/symbol table).
+
+ranlib generates/updates an index (symbol table) inside the archive, which
+allows the linker to quickly determine which object file contains a given
+symbol (function), without scanning the entire archive. Since the "s" flag
+was used along with ar (as in ARFLAGS = rcs), ranlib runs automatically —
+so there was no need to run a separate ranlib command.
 
 ### 3. nm on client_static
-Haan, jab humne nm bin/client_static | grep mystrlen chalaya, to mystrlen 
-function ka symbol executable ke andar maujood mila (type 'T', matlab text/
-code section me defined hai). 
+Yes, when nm bin/client_static | grep mystrlen was run, the mystrlen
+function's symbol was found present inside the executable (with type 'T',
+meaning it is defined in the text/code section).
 
-Ye batata hai ke static linking ke dauran, linker ne library (libmyutils.a) 
-se sirf wo functions nikal kar (jo actually use hue hain, jaise mystrlen, 
-wordCount, etc.) unhe directly final executable ke andar copy/embed kar diya. 
-Isi wajah se static executable size me bara hota hai lekin run-time pe kisi 
-external .so file ki zaroorat nahi padti — sab kuch executable ke andar 
-self-contained hota hai.
+This shows that during static linking, the linker extracted the functions
+that are actually used from the library (libmyutils.a) — such as mystrlen,
+wordCount, etc. — and copied/embedded them directly into the final
+executable. This is why a statically linked executable is larger in size,
+but does not require any external .so file at runtime — everything is
+self-contained within the executable.
 
-Note: readelf -d bin/client_static output me libc.so.6 as a NEEDED shared 
-library dikhti hai. Iska matlab ye hai ke hamare khud ke likhe functions 
-(mystrlen, wordCount, etc.) static tor pe executable ke andar embed ho gaye 
-hain, lekin system ki standard C library (libc) by default dynamically 
-link hoti hai — jab tak humne -static flag explicitly use na kiya ho.
+Note: readelf -d bin/client_static shows libc.so.6 listed as a NEEDED
+shared library. This means that while our own custom functions (mystrlen,
+wordCount, etc.) are embedded into the executable statically, the system's
+standard C library (libc) is still dynamically linked by default, unless
+the -static flag is explicitly used.
