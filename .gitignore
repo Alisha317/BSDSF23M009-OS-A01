@@ -1,4 +1,5 @@
 obj/*.o
 bin/client
 bin/client_static
+bin/client_dynamic
 *.txt
